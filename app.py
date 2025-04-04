@@ -7,13 +7,14 @@ from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate,ChatPromptTemplate
 from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import PyPDFLoader,Docx2txtLoader,TextLoader
-from langchain.document_loaders import UnstructuredExcelLoader
+from langchain.document_loaders import UnstructuredExcelLoader,UnstructuredPowerPointLoader
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.documents import Document
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain.schema import HumanMessage,AIMessage
 import tempfile
 import base64
+
 
 load_dotenv()
 
@@ -22,7 +23,6 @@ groq_api_key = os.getenv('GROQ_API_KEY')
 
 llm = ChatGroq(model='deepseek-r1-distill-llama-70b',api_key=groq_api_key)
 
-llm2 = ChatGroq(model='llama-3.1-8b-instant',api_key=groq_api_key)
 
 st.set_page_config(page_title='AskMe')
 
@@ -36,13 +36,16 @@ def transcribe_audio(file_path):
     '''
 
     with open(file_path,'rb') as f:
-        output = client.audio.transcriptions.create(
-            file=(file_path,f.read()),
-            model = 'whisper-large-v3-turbo',
-            prompt = prompt,
-            response_format='text',
-            temperature=0.8
-        )
+        try:
+            output = client.audio.transcriptions.create(
+                file=(file_path,f.read()),
+                model = 'whisper-large-v3-turbo',
+                prompt = prompt,
+                response_format='text',
+                temperature=0.8
+            )
+        except Exception:
+            return False
     
     return output
 
@@ -79,30 +82,32 @@ def encode_image(image_path):
     return base64.b64encode(image_file.read()).decode('utf-8')
   
 def summarize_image(image_path,extension):
-   encoded_image = encode_image(image_path)
-
-   client = Groq()
+    encoded_image = encode_image(image_path)
+    client = Groq()
    
-   chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "analyze image and provide a concise summary that captures its main part in the image."},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/{extension};base64,{encoded_image}",
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "analyze image and provide a concise summary that captures its main part in the image."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/{extension};base64,{encoded_image}",
+                            },
                         },
-                    },
-                ],
-            }
-        ],
-        model='llama-3.2-11b-vision-preview')
+                    ],
+                }
+            ],
+            model='llama-3.2-11b-vision-preview')
+    except Exception:
+        return False
+    
+    summary = chat_completion.choices[0].message.content
 
-   summary = chat_completion.choices[0].message.content
-
-   return summary
+    return summary
 
 def process_file(file_path,file_extension):
     
@@ -115,6 +120,8 @@ def process_file(file_path,file_extension):
         loader = TextLoader(file_path)
     elif file_extension == ".xlsx":
         loader = UnstructuredExcelLoader(file_path)
+    elif file_extension == ".pptx":
+        loader = UnstructuredPowerPointLoader(file_path)
     else:
         return "Unsupported file format!"
     
@@ -140,14 +147,23 @@ if file:
         if extension in audio_extensions:
             output = transcribe_audio(temp_file_path)
             summary = summarize_chain.invoke({'input_document':[Document(page_content=output)]})
-            st.success(summary['output_text'])
+            if summary == False:
+                st.error("something went wrong")
+            else:    
+                st.success(summary['output_text'])
         elif extension in visual_extension:
             summary = summarize_image(temp_file_path,extension)
-            st.success(summary)
+            if summary == False:
+                st.error("something went wrong")
+            else:    
+                st.success(summary)
         else:
             doc = process_file(temp_file_path,extension)
-            summary = summarize_chain.invoke({'input_document':doc})
-            st.success(summary['output_text'])
+            try:
+                summary = summarize_chain.invoke({'input_document':doc})
+                st.success(summary['output_text'])
+            except Exception:
+                st.error("something went wrong")
 
 
 #### creating chat interface ####
@@ -160,7 +176,7 @@ chat_prompt = ChatPromptTemplate.from_template(
     '''
 )
 
-chain = chat_prompt|llm2
+chain = chat_prompt|llm
 
 msg = StreamlitChatMessageHistory(key='messages')
 
@@ -199,6 +215,9 @@ if query:
 
     with st.chat_message('ai'):
         config = {'configurable':{'session_id':'a'}}
-        response = chain_with_history.invoke({'question':query,'doc':summary},config=config)
-        st.session_state.messages.append({'role':'ai','content':response.content})
-        st.write(response.content)
+        try:
+            response = chain_with_history.invoke({'question':query,'doc':summary},config=config)
+            st.session_state.messages.append({'role':'ai','content':response.content})
+            st.write(response.content)
+        except Exception:
+            st.error("something went wrong")
