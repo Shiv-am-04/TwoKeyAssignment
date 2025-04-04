@@ -11,3 +11,4 @@ langgraph
 pdf2image
 streamlit
 python-pptx
+unstructured
