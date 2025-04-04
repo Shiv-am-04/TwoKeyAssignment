@@ -172,7 +172,7 @@ chat_prompt = ChatPromptTemplate.from_template(
     '''
     Using the provided context {doc}, please formulate a response that addresses the user's question. 
     While taking {doc} into account, ensure that your response is not solely reliant on it; supplement your answer with your own knowledge as needed. 
-    The answer should be concise—neither too long nor too short—aiming for clarity and relevance.
+    The answer should be concise—neither too long nor too short—aiming for clarity and relevance. It should be less than 200 words
     '''
 )
 
