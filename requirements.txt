@@ -10,4 +10,4 @@ langchain_groq
 langgraph
 pdf2image
 streamlit
-pptx
+python-pptx
