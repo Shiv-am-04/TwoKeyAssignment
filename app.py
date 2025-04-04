@@ -154,9 +154,9 @@ if file:
 
 chat_prompt = ChatPromptTemplate.from_template(
     '''
-    You have to provide answer to the user in the way the user wanted.
-    Make sure to answer taking {doc} into context. If the {doc} is not enough to
-    answer user question then use your own knowledge to give the answer.
+    Using the provided context {doc}, please formulate a response that addresses the user's question. 
+    While taking {doc} into account, ensure that your response is not solely reliant on it; supplement your answer with your own knowledge as needed. 
+    The answer should be concise—neither too long nor too short—aiming for clarity and relevance.
     '''
 )
 
