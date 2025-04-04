@@ -104,7 +104,7 @@ def summarize_image(image_path,extension):
 
    return summary
 
-def process_file(file_path,file_extension,vectordb):
+def process_file(file_path,file_extension):
     
     # Load content based on file type
     if file_extension == ".pdf":
