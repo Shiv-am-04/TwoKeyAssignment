@@ -1,0 +1,12 @@
+langchain
+python-dotenv
+langchain_community
+pypdf
+langchain-text-splitters
+langchain_huggingface
+langchain_cli
+faiss-cpu
+langchain_groq
+langgraph
+pdf2image
+streamlit
