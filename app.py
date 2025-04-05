@@ -21,7 +21,7 @@ load_dotenv()
 
 groq_api_key = os.getenv('GROQ_API_KEY')
 
-llm = ChatGroq(model='deepseek-r1-distill-llama-70b',api_key=groq_api_key)
+llm = ChatGroq(model='deepseek-r1-distill-llama-70b',api_key=groq_api_key,temprature=0.6)
 
 
 st.set_page_config(page_title='AskMe')
